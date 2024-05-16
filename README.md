@@ -128,6 +128,7 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
   * depends_on
   * network bindings
   * volume mappings
+  * device mappings
 
 
 # Comparison to other tools

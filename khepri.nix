@@ -57,6 +57,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      devices = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
     };
   };
   # Helper functions to enable consistent name generation
@@ -133,6 +137,7 @@ let
       environment = serviceConfiguration.environment;
       cmd = serviceConfiguration.cmd;
       ports = serviceConfiguration.ports;
+      devices = serviceConfiguration.devices;
 
       # Additional helpers for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -153,11 +158,14 @@ let
       ports = serviceConfiguration.ports;
       dependsOn = serviceConfiguration.dependsOn;
       extraOptions = let
-        network = if serviceConfiguration.primaryNetwork != "" then
+        networkOption = if serviceConfiguration.primaryNetwork != "" then
           [ "--network=${serviceConfiguration.primaryNetwork}" ]
         else
           [ ];
-      in network ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
+        deviceOptions =
+          map (device: "--device=${device}") serviceConfiguration.devices;
+      in networkOption ++ deviceOptions
+      ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
   mkSystemdService = serviceConfiguration:
