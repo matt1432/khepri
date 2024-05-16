@@ -29,6 +29,10 @@ let
   serviceOptions = { ... }: {
     options = {
       image = mkOption { type = types.str; };
+      restart = mkOption {
+        type = types.enum [ "no" "always" "on-failure" "unless-stopped" ];
+        default = "no";
+      };
       environment = mkOption {
         type = types.attrsOf types.str;
         default = { };
@@ -61,6 +65,18 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      capAdd = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
+      capDrop = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
+      extraHosts = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
     };
   };
   # Helper functions to enable consistent name generation
@@ -80,6 +96,9 @@ let
     "docker-volume-${compositionName}_${volumeName}";
   mkSystemdNetworkName = compositionName: networkName:
     "docker-network-${compositionName}_${networkName}";
+
+  composeRestartToSystemdRestart = restartStr:
+    if restartStr == "unless-stopped" then "always" else restartStr;
 
   mkCanonicalServiceConfiguration =
     compositionName: compositionConfiguration: serviceName: serviceConfiguration:
@@ -138,6 +157,10 @@ let
       cmd = serviceConfiguration.cmd;
       ports = serviceConfiguration.ports;
       devices = serviceConfiguration.devices;
+      capAdd = serviceConfiguration.capAdd;
+      capDrop = serviceConfiguration.capDrop;
+      extraHosts = serviceConfiguration.extraHosts;
+      restart = serviceConfiguration.restart;
 
       # Additional helpers for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -164,7 +187,14 @@ let
           [ ];
         deviceOptions =
           map (device: "--device=${device}") serviceConfiguration.devices;
-      in networkOption ++ deviceOptions
+        capAddOptions =
+          map (cap: "--cap-add=${cap}") serviceConfiguration.capAdd;
+        capDropOptions =
+          map (cap: "--cap-drop=${cap}") serviceConfiguration.capDrop;
+        extraHostsOptions =
+          map (host: "--add-host=${host}") serviceConfiguration.extraHosts;
+      in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
+      ++ capDropOptions
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
@@ -180,10 +210,11 @@ let
     in nameValuePair "docker-${serviceConfiguration.containerName}" {
       path = [ pkgs.docker pkgs.gnugrep ];
       serviceConfig = {
-        Restart = lib.mkOverride 500 "always";
-        RestartMaxDelaySec = lib.mkOverride 500 "1m";
-        RestartSec = lib.mkOverride 500 "100ms";
-        RestartSteps = lib.mkOverride 500 9;
+        Restart =
+          mkForce (composeRestartToSystemdRestart serviceConfiguration.restart);
+        RestartMaxDelaySec = mkOverride 500 "1m";
+        RestartSec = mkOverride 500 "100ms";
+        RestartSteps = mkOverride 500 9;
       };
       after = dependencies;
       requires = dependencies;

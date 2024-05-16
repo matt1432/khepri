@@ -6,6 +6,8 @@ NixOS docker container orchestration in native nix similar to docker-compose.
 
 The main use-case for `khepri` is to easily run containerized workloads on NixOS, when NixOS modules for a application are not available/applicable and running a large container orchestrator like kubernetes is overkill.
 
+This tool is heavily inspired by [compose2nix](https://github.com/aksiksi/compose2nix).
+
 # Usage
 
 ## Installation
@@ -44,6 +46,7 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
             "/etc/caddy/Caddyfile:/etc/caddy/Caddyfile:ro"
           ];
           ports = [ "80:80/tcp" "443:443/tcp" "443:443/udp" ];
+          restart = "unless-stopped";
         };
       };
     };
@@ -59,6 +62,7 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
           image = "docker.io/library/redis:7";
           volumes = [ "redisdata:/data:rw" ];
           networks = [ "paperless" ];
+          restart = "unless-stopped";
         };
         db = {
           image = "docker.io/library/postgres:15";
@@ -69,10 +73,12 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
           };
           volumes = [ "pgdata:/var/lib/postgresql/data:rw" ];
           networks = [ "paperless" ];
+          restart = "unless-stopped";
         };
         tika = {
           image = "ghcr.io/paperless-ngx/tika:latest";
           networks = [ "paperless" ];
+          restart = "unless-stopped";
         };
         gotenberg = {
           image = "docker.io/gotenberg/gotenberg:7.8";
@@ -82,6 +88,7 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
             "--chromium-allow-list=file:///tmp/.*"
           ];
           networks = [ "paperless" ];
+          restart = "unless-stopped";
         };
         webserver = {
           image = "ghcr.io/paperless-ngx/paperless-ngx:latest";
@@ -104,6 +111,7 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
           ports = [ "8000:8000/tcp" ];
           dependsOn = [ "db" "broker" "tika" "gotenberg" ];
           networks = [ "paperless" "proxy_net" ];
+          restart = "unless-stopped";
         };
       };
     };
@@ -116,20 +124,63 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
 
 `khepri` orientates itself at the features of docker-compose. Currently, only a subset of the features of docker-compose are supported:
 
-* volumes:
-  * volume definitions
-* networks:
-  * network definitions
-  * external/internal settings
-* services:
-  * container_name
-  * port mappings
-  * environment variables
-  * depends_on
-  * network bindings
-  * volume mappings
-  * device mappings
 
+## [`services`](https://docs.docker.com/compose/compose-file/05-services/)
+
+|   |     | Notes |
+|---|:---:|-------|
+| [`image`](https://docs.docker.com/compose/compose-file/05-services/#image) | ✅ | |
+| [`container_name`](https://docs.docker.com/compose/compose-file/05-services/#container_name) | ✅ | |
+| [`environment`](https://docs.docker.com/compose/compose-file/05-services/#environment) | ✅ | |
+| [`volumes`](https://docs.docker.com/compose/compose-file/05-services/#volumes) | ✅ | |
+| [`labels`](https://docs.docker.com/compose/compose-file/05-services/#labels) | ❌ | |
+| [`ports`](https://docs.docker.com/compose/compose-file/05-services/#ports) | ✅ | |
+| [`dns`](https://docs.docker.com/compose/compose-file/05-services/#dns) | ❌ | |
+| [`cap_add/cap_drop`](https://docs.docker.com/compose/compose-file/05-services/#cap_add) | ✅ | |
+| [`logging`](https://docs.docker.com/compose/compose-file/05-services/#logging) | ❌ | |
+| [`depends_on`](https://docs.docker.com/compose/compose-file/05-services/#depends_on) | ⚠️ | Only short syntax is supported. |
+| [`restart`](https://docs.docker.com/compose/compose-file/05-services/#restart) | ⚠️ | No 'on-failure:<x>' |
+| [`deploy.restart_policy`](https://docs.docker.com/compose/compose-file/deploy/#restart_policy) | ❌ | |
+| [`deploy.resources`](https://docs.docker.com/compose/compose-file/deploy/#resources) | ❌ | |
+| [`devices`](https://docs.docker.com/compose/compose-file/05-services/#devices) | ✅ | |
+| [`networks`](https://docs.docker.com/compose/compose-file/05-services/#networks) | ✅ | |
+| [`networks.aliases`](https://docs.docker.com/compose/compose-file/05-services/#aliases) | ❌ | |
+| [`networks.ipv*_address`](https://docs.docker.com/compose/compose-file/05-services/#ipv4_address-ipv6_address) | ❌ | |
+| [`network_mode`](https://docs.docker.com/compose/compose-file/05-services/#network_mode) | ❌ | |
+| [`privileged`](https://docs.docker.com/compose/compose-file/05-services/#privileged) | ❌ | |
+| [`extra_hosts`](https://docs.docker.com/compose/compose-file/05-services/#extra_hosts) | ✅ | |
+| [`sysctls`](https://docs.docker.com/compose/compose-file/05-services/#sysctls) | ❌ | |
+| [`shm_size`](https://docs.docker.com/compose/compose-file/05-services/#shm_size) | ❌ | |
+| [`runtime`](https://docs.docker.com/compose/compose-file/05-services/#runtime) | ❌ | |
+| [`security_opt`](https://docs.docker.com/compose/compose-file/05-services/#security_opt) | ❌ | |
+| [`command`](https://docs.docker.com/compose/compose-file/05-services/#command) | ✅ | |
+| [`healthcheck`](https://docs.docker.com/compose/compose-file/05-services/#healthcheck) | ❌ | |
+| [`hostname`](https://docs.docker.com/compose/compose-file/05-services/#hostname) | ❌ | |
+| [`mac_address`](https://docs.docker.com/compose/compose-file/05-services/#mac_address) | ❌ | |
+
+## [`networks`](https://docs.docker.com/compose/compose-file/06-networks/)
+
+|   |     |
+|---|:---:|
+| [`basic`](https://docs.docker.com/compose/compose-file/06-networks/#basic-example) | ✅ |
+| [`labels`](https://docs.docker.com/compose/compose-file/06-networks/#labels) | ❌ |
+| [`name`](https://docs.docker.com/compose/compose-file/06-networks/#name) | ❌ |
+| [`driver`](https://docs.docker.com/compose/compose-file/06-networks/#driver) | ❌ |
+| [`driver_opts`](https://docs.docker.com/compose/compose-file/06-networks/#driver_opts) | ❌ |
+| [`ipam`](https://docs.docker.com/compose/compose-file/06-networks/#ipam) | ❌ |
+| [`external`](https://docs.docker.com/compose/compose-file/06-networks/#external) | ✅ |
+| [`internal`](https://docs.docker.com/compose/compose-file/06-networks/#internal) | ❌ |
+
+## [`volumes`](https://docs.docker.com/compose/compose-file/07-volumes/)
+
+|   |     |
+|---|:---:|
+| [`basic`](https://docs.docker.com/compose/compose-file/07-volumes/#example) | ✅ |
+| [`driver`](https://docs.docker.com/compose/compose-file/07-volumes/#driver) | ❌ |
+| [`driver_opts`](https://docs.docker.com/compose/compose-file/07-volumes/#driver_opts) | ❌ |
+| [`labels`](https://docs.docker.com/compose/compose-file/07-volumes/#labels) | ❌ |
+| [`name`](https://docs.docker.com/compose/compose-file/07-volumes/#name) | ❌ |
+| [`external`](https://docs.docker.com/compose/compose-file/07-volumes/#external) | ❌ |
 
 # Comparison to other tools
 
