@@ -32,6 +32,14 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
 
 ```nix
 { config, pkgs, lib, ... }: {
+  # docker must be enabled
+  virtualisation.docker = {
+    enable = true;
+  };
+  # khepri uses oci-containers under the hood and it must be set to docker to work
+  virtualisation.oci-containers.backend = "docker";
+
+  # Define the compositions
   khepri.compositions = {
     # The first composition for running the reverse proxy caddy
     caddy = {

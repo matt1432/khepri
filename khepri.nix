@@ -101,7 +101,7 @@ let
     if restartStr == "unless-stopped" then "always" else restartStr;
 
   mkCanonicalServiceConfiguration =
-    compositionName: compositionConfiguration: serviceName: serviceConfiguration:
+    compositionName: compositionConfiguration: serviceName: serviceConfiguration: networkConfigurations:
     let
       mappedVolumes =
         map (volumeMapping: head (builtins.split ":" volumeMapping))
@@ -123,11 +123,15 @@ let
           ])
         else
           mapping) serviceConfiguration.volumes;
-      # Make sure to construct the canonical network name, to be able to distinguish between internal and external networks.
-      canonicalNetworkNames = map (networkName:
-        mkNetworkName compositionName networkName
-        (getAttr networkName compositionConfiguration.networks))
-        serviceConfiguration.networks;
+      # Map all attached networks to their final name
+      attachedNetworksConfigurations = map (networkName:
+        (lists.findSingle (networkConfiguration:
+          networkConfiguration.name == networkName
+          && networkConfiguration.composition == compositionName) (throw
+            "error: network '${networkName}' is referenced by service '${serviceName}' in composition '${compositionName}' but definition on composition level could not be found")
+          (throw
+            "error: multiple network configurations for '${networkName}' found")
+          networkConfigurations)) serviceConfiguration.networks;
       containerName =
         mkContainerName compositionName serviceName serviceConfiguration;
     in {
@@ -141,12 +145,15 @@ let
       volumeMappings = volumeMappings;
       # Canonical name of each volume as definied in a compositions 'volumes' section
       volumes = serviceVolumes;
-      primaryNetwork =
-        if canonicalNetworkNames == [ ] then "" else head canonicalNetworkNames;
-      additionalNetworks = if canonicalNetworkNames == [ ] then
+      primaryNetwork = if attachedNetworksConfigurations == [ ] then
+        ""
+      else
+        (head attachedNetworksConfigurations).canonicalName;
+      additionalNetworks = if attachedNetworksConfigurations == [ ] then
         [ ]
       else
-        tail canonicalNetworkNames;
+        map (networkConfiguration: networkConfiguration.canonicalName)
+        (tail attachedNetworksConfigurations);
       dependsOn = map (dependencyServiceName:
         mkContainerName compositionName dependencyServiceName
         (getAttr dependencyServiceName compositionConfiguration.services))
@@ -162,14 +169,29 @@ let
       extraHosts = serviceConfiguration.extraHosts;
       restart = serviceConfiguration.restart;
 
-      # Additional helpers for systemd
+      # Additional information for systemd
       systemdTarget = mkSystemdTargetName compositionName;
       systemdVolumeDependencies = map (volumeName:
         "${mkSystemdVolumeName compositionName volumeName}.service")
         serviceVolumes;
-      systemdNetworkDependencies = map (networkName:
-        "${mkSystemdNetworkName compositionName networkName}.service")
-        serviceConfiguration.networks;
+      # Create the dependencies to the systemd services for each non-external service
+      systemdNetworkDependencies = map
+        (networkConfiguration: "${networkConfiguration.systemdService}.service")
+        (filter (networkConfiguration: !networkConfiguration.external)
+          attachedNetworksConfigurations);
+    };
+  mkCanonicalNetworkConfiguration =
+    compositionName: networkName: networkConfiguration: {
+      name = networkName;
+      canonicalName =
+        mkNetworkName compositionName networkName networkConfiguration;
+      external = networkConfiguration.external;
+
+      composition = compositionName;
+
+      # Additional information for systemd
+      systemdTarget = mkSystemdTargetName compositionName;
+      systemdService = mkSystemdNetworkName compositionName networkName;
     };
 
   mkContainerConfiguration = serviceConfiguration:
@@ -198,7 +220,11 @@ let
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
-  mkSystemdService = serviceConfiguration:
+  mkSystemdServicesForContainers = serviceConfigurations:
+    (map
+      (serviceConfiguration: mkSystemdServiceForContainer serviceConfiguration)
+      serviceConfigurations);
+  mkSystemdServiceForContainer = serviceConfiguration:
     let
       dependencies = flatten [
         serviceConfiguration.systemdVolumeDependencies
@@ -233,10 +259,10 @@ let
   mkVolumes = compositionName: serviceConfiguration:
     (map (volumeName:
       nameValuePair (mkSystemdVolumeName compositionName volumeName)
-      (mkVolumeConfiguration compositionName volumeName))
+      (mkSystemdServiceForVolume compositionName volumeName))
       serviceConfiguration.volumes);
 
-  mkVolumeConfiguration = compositionName: volumeName:
+  mkSystemdServiceForVolume = compositionName: volumeName:
     let fullVolumeName = "${compositionName}_${volumeName}";
     in {
       path = [ pkgs.docker ];
@@ -251,29 +277,26 @@ let
       wantedBy = [ "${mkSystemdTargetName compositionName}.target" ];
     };
 
-  mkNetworks = compositionName: compositionConfiguration:
-    (mapAttrsToList (networkName: networkConfiguration:
-      nameValuePair (mkSystemdNetworkName compositionName networkName)
-      (mkNetworkConfiguration compositionName networkName networkConfiguration))
-      compositionConfiguration.networks);
-  mkNetworkConfiguration = compositionName: networkName: networkConfiguration:
-    let
-      fullNetworkName =
-        mkNetworkName compositionName networkName networkConfiguration;
-      fullTargetName = "${mkSystemdTargetName compositionName}.target";
+  mkSystemdServicesForNetworks = networkConfigurations:
+    map (networkConfiguration:
+      (nameValuePair "docker-network-${networkConfiguration.canonicalName}"
+        (mkSystemdServiceForNetwork networkConfiguration)))
+    networkConfigurations;
+  mkSystemdServiceForNetwork = networkConfiguration:
+    let fullTargetName = "${networkConfiguration.systemdTarget}.target";
     in {
       path = [ pkgs.docker ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStop = "${pkgs.docker}/bin/docker network rm -f ${fullNetworkName}";
+        ExecStop =
+          "${pkgs.docker}/bin/docker network rm -f ${networkConfiguration.canonicalName}";
       };
       script = ''
-        docker network inspect ${fullNetworkName} || docker network create ${fullNetworkName}
+        docker network inspect ${networkConfiguration.canonicalName} || docker network create ${networkConfiguration.canonicalName}
       '';
       partOf = [ fullTargetName ];
       wantedBy = [ fullTargetName ];
-
     };
 in {
   options.khepri = {
@@ -284,12 +307,19 @@ in {
   };
 
   config = mkIf (cfg.compositions != { }) (let
+    networkConfigurations = flatten (mapAttrsToList
+      (compositionName: compositionConfiguration:
+        (mapAttrsToList (networkName: networkConfiguration:
+          (mkCanonicalNetworkConfiguration compositionName networkName
+            networkConfiguration)) compositionConfiguration.networks))
+      cfg.compositions);
     serviceConfigurations = flatten (mapAttrsToList
       (compositionName: compositionConfiguration:
         (mapAttrsToList (serviceName: serviceConfiguration:
           (mkCanonicalServiceConfiguration compositionName
-            compositionConfiguration serviceName serviceConfiguration))
-          compositionConfiguration.services)) cfg.compositions);
+            compositionConfiguration serviceName serviceConfiguration
+            networkConfigurations)) compositionConfiguration.services))
+      cfg.compositions);
     targets = lists.unique
       (map (serviceConfiguration: serviceConfiguration.systemdTarget)
         serviceConfigurations);
@@ -298,14 +328,14 @@ in {
       (map (serviceConfiguration: mkContainerConfiguration serviceConfiguration)
         serviceConfigurations);
     systemd.services = let
-      mainServices = listToAttrs
-        (map (serviceConfiguration: mkSystemdService serviceConfiguration)
-          serviceConfigurations);
+      containers =
+        listToAttrs (mkSystemdServicesForContainers serviceConfigurations);
       volumes = listToAttrs
         (flatten (mapAttrsToList (n: v: mkVolumes n v) cfg.compositions));
-      networks = listToAttrs
-        (flatten (mapAttrsToList (n: v: mkNetworks n v) cfg.compositions));
-    in mkMerge [ mainServices volumes networks ];
+      networks = listToAttrs (mkSystemdServicesForNetworks
+        (filter (networkConfiguration: !networkConfiguration.external)
+          networkConfigurations));
+    in mkMerge [ containers volumes networks ];
     systemd.targets = listToAttrs (map
       (target: nameValuePair target ({ wantedBy = [ "multi-user.target" ]; }))
       targets);
