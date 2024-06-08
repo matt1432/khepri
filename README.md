@@ -131,19 +131,20 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
 
 ### Using dockerTools
 
-When specifying the image as a string, this image will be pulled automatically on boot of the container. Although, this works great, it is not the "nix way". Therefore, khepri also supports docker images from derivation such as those created using `dockerTools.pullImage`:
+When specifying the image as a string, this image will be pulled automatically on boot of the container. Although, this works great, it is not the "nix way". Therefore, khepri also supports docker images as derivations such as those created using `dockerTools.pullImage` or `dockerTools.buildImage`:
 
 ```nix
 { config, pkgs, lib, ... }: {
   khepri.compositions = {
-    hello = {
+    nginx = {
       services = {
-        hello = {          
+        nginx = {          
           image = pkgs.dockerTools.pullImage {
-            imageName = "hello-world";
-            imageDigest = "sha256:266b191e926f65542fa8daaec01a192c4d292bff79426f47300a046e1bc576fd";
-            sha256 = "05xrzqqqdxclyix4ifbdvxfacvhmnl0rpanh4g7km6k0ab3gfbd6";
-            finalImageName = "hello-world";
+            imageName = "nginx";
+            imageDigest =
+              "sha256:0f04e4f646a3f14bf31d8bc8d885b6c951fdcf42589d06845f64d18aec6a3c4d";
+            sha256 = "159z86nw6riirs9ix4zix7qawhfngl5fkx7ypmi6ib0sfayc8pw2";
+            finalImageName = "nginx";
             finalImageTag = "latest";
           };
           restart = "unless-stopped";
