@@ -98,10 +98,20 @@ let
     "docker-network-${compositionName}_${networkName}";
 
   getImageNameFromDerivation = drv:
-    if attrsets.hasAttrByPath drv [ "destNameTag" ] then
+    let attrNames = lib.attrNames drv;
+    in if builtins.elem "destNameTag" attrNames then
+    # image comming from dockerTools.pullImage
       drv.destNameTag
     else
-      throw ("Image '${drv}' is missing the attribute 'destNameTag'");
+    # image comming from dockerTools.buildImage
+    if builtins.elem "imageName" attrNames
+    && builtins.elem "imageTag" attrNames then
+      "${drv.imageName}:${drv.imageTag}"
+    else
+      throw
+      ("Image '${drv}' is missing the attribute 'destNameTag'. Available attributes: ${
+          lib.strings.concatStringsSep "," (attrNames)
+        }");
 
   composeRestartToSystemdRestart = restartStr:
     if restartStr == "unless-stopped" then "always" else restartStr;
@@ -169,10 +179,10 @@ let
         (getAttr dependencyServiceName compositionConfiguration.services))
         serviceConfiguration.dependsOn;
       image = imageName;
-      imageFile = if builtins.isAttrs then
+      imageFile = if builtins.isAttrs serviceConfiguration.image then
         serviceConfiguration.image
       else
-        serviceConfiguration.image;
+        null;
       # Some extra parameters that are passed as is
       environment = serviceConfiguration.environment;
       cmd = serviceConfiguration.cmd;
@@ -211,6 +221,7 @@ let
   mkContainerConfiguration = serviceConfiguration:
     nameValuePair serviceConfiguration.containerName {
       image = serviceConfiguration.image;
+      imageFile = serviceConfiguration.imageFile;
       environment = serviceConfiguration.environment;
       volumes = serviceConfiguration.volumeMappings;
       cmd = serviceConfiguration.cmd;

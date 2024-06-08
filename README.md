@@ -134,20 +134,18 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
 When specifying the image as a string, this image will be pulled automatically on boot of the container. Although, this works great, it is not the "nix way". Therefore, khepri also supports docker images from derivation such as those created using `dockerTools.pullImage`:
 
 ```nix
-{ config, pkgs, lib, ... }: 
-let helloWorldImage = pkgs.dockerTools.pullImage {
-  imageName = "hello-world";
-  imageDigest = "sha256:266b191e926f65542fa8daaec01a192c4d292bff79426f47300a046e1bc576fd";
-  sha256 = "05xrzqqqdxclyix4ifbdvxfacvhmnl0rpanh4g7km6k0ab3gfbd6";
-  finalImageName = "hello-world";
-  finalImageTag = "latest";
-}; in {
-  # ...: Additional configuration
+{ config, pkgs, lib, ... }: {
   khepri.compositions = {
     hello = {
       services = {
-        hello = {
-          image = helloWorldImage; # Simply pass the result of pullImage
+        hello = {          
+          image = pkgs.dockerTools.pullImage {
+            imageName = "hello-world";
+            imageDigest = "sha256:266b191e926f65542fa8daaec01a192c4d292bff79426f47300a046e1bc576fd";
+            sha256 = "05xrzqqqdxclyix4ifbdvxfacvhmnl0rpanh4g7km6k0ab3gfbd6";
+            finalImageName = "hello-world";
+            finalImageTag = "latest";
+          };
           restart = "unless-stopped";
         };
       };
