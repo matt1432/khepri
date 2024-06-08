@@ -28,7 +28,7 @@ let
   };
   serviceOptions = { ... }: {
     options = {
-      image = mkOption { type = types.str; };
+      image = mkOption { type = types.either types.str types.package; };
       restart = mkOption {
         type = types.enum [ "no" "always" "on-failure" "unless-stopped" ];
         default = "no";
@@ -97,6 +97,12 @@ let
   mkSystemdNetworkName = compositionName: networkName:
     "docker-network-${compositionName}_${networkName}";
 
+  getImageNameFromDerivation = drv:
+    if attrsets.hasAttrByPath drv [ "destNameTag" ] then
+      drv.destNameTag
+    else
+      throw ("Image '${drv}' is missing the attribute 'destNameTag'");
+
   composeRestartToSystemdRestart = restartStr:
     if restartStr == "unless-stopped" then "always" else restartStr;
 
@@ -134,6 +140,10 @@ let
           networkConfigurations)) serviceConfiguration.networks;
       containerName =
         mkContainerName compositionName serviceName serviceConfiguration;
+      imageName = if builtins.isString serviceConfiguration.image then
+        serviceConfiguration.image
+      else
+        getImageNameFromDerivation serviceConfiguration.image;
     in {
       serviceName = serviceName;
       containerName = containerName;
@@ -158,8 +168,12 @@ let
         mkContainerName compositionName dependencyServiceName
         (getAttr dependencyServiceName compositionConfiguration.services))
         serviceConfiguration.dependsOn;
+      image = imageName;
+      imageFile = if builtins.isAttrs then
+        serviceConfiguration.image
+      else
+        serviceConfiguration.image;
       # Some extra parameters that are passed as is
-      image = serviceConfiguration.image;
       environment = serviceConfiguration.environment;
       cmd = serviceConfiguration.cmd;
       ports = serviceConfiguration.ports;
@@ -256,12 +270,11 @@ let
         "";
     };
 
-  mkVolumes = compositionName: serviceConfiguration:
+  mkSystemdServicesForVolumes = compositionName: serviceConfiguration:
     (map (volumeName:
       nameValuePair (mkSystemdVolumeName compositionName volumeName)
       (mkSystemdServiceForVolume compositionName volumeName))
       serviceConfiguration.volumes);
-
   mkSystemdServiceForVolume = compositionName: volumeName:
     let fullVolumeName = "${compositionName}_${volumeName}";
     in {
@@ -330,8 +343,9 @@ in {
     systemd.services = let
       containers =
         listToAttrs (mkSystemdServicesForContainers serviceConfigurations);
-      volumes = listToAttrs
-        (flatten (mapAttrsToList (n: v: mkVolumes n v) cfg.compositions));
+      volumes = listToAttrs (flatten
+        (mapAttrsToList (n: v: mkSystemdServicesForVolumes n v)
+          cfg.compositions));
       networks = listToAttrs (mkSystemdServicesForNetworks
         (filter (networkConfiguration: !networkConfiguration.external)
           networkConfigurations));

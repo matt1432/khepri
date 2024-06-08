@@ -4,9 +4,9 @@ NixOS docker container orchestration in native nix similar to docker-compose.
 
 `khepri` allows you to easily define "container compositions" natively in your NixOS configuration similarly how you would define them in a `docker-compose.yaml`. This enables your NixOS configuration to become the source of truth for your system, without the need for another orchestration layer on top.
 
-The main use-case for `khepri` is to easily run containerized workloads on NixOS, when NixOS modules for a application are not available/applicable and running a large container orchestrator like kubernetes is overkill.
+The main use-case for `khepri` is to easily run containerized workloads on NixOS, when NixOS modules for an application are not available/applicable and running a large container orchestrator like kubernetes is overkill.
 
-This tool is heavily inspired by [compose2nix](https://github.com/aksiksi/compose2nix).
+This tool is heavily inspired by [compose2nix](https://github.com/aksiksi/compose2nix). 
 
 # Usage
 
@@ -29,6 +29,8 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
 ```
 
 ## Example
+
+### Full Example
 
 ```nix
 { config, pkgs, lib, ... }: {
@@ -127,17 +129,44 @@ Assuming you are using flakes to configure your NixOS system, you can add the `k
 }
 ```
 
+### Using dockerTools
+
+When specifying the image as a string, this image will be pulled automatically on boot of the container. Although, this works great, it is not the "nix way". Therefore, khepri also supports docker images from derivation such as those created using `dockerTools.pullImage`:
+
+```nix
+{ config, pkgs, lib, ... }: 
+let helloWorldImage = pkgs.dockerTools.pullImage {
+  imageName = "hello-world";
+  imageDigest = "sha256:266b191e926f65542fa8daaec01a192c4d292bff79426f47300a046e1bc576fd";
+  sha256 = "05xrzqqqdxclyix4ifbdvxfacvhmnl0rpanh4g7km6k0ab3gfbd6";
+  finalImageName = "hello-world";
+  finalImageTag = "latest";
+}; in {
+  # ...: Additional configuration
+  khepri.compositions = {
+    hello = {
+      services = {
+        hello = {
+          image = helloWorldImage; # Simply pass the result of pullImage
+          restart = "unless-stopped";
+        };
+      };
+    };
+  };
+};
+```
+
 
 # Features
 
-`khepri` orientates itself at the features of docker-compose. Currently, only a subset of the features of docker-compose are supported:
+`khepri` orientates itself at the features of docker-compose. Currently, a subset of the features of docker-compose are supported:
 
 
 ## [`services`](https://docs.docker.com/compose/compose-file/05-services/)
 
 |   |     | Notes |
 |---|:---:|-------|
-| [`image`](https://docs.docker.com/compose/compose-file/05-services/#image) | ✅ | |
+| [`image`](https://docs.docker.com/compose/compose-file/05-services/#image) | ✅ | Supports images from `dockerTools.pullImage` |
 | [`container_name`](https://docs.docker.com/compose/compose-file/05-services/#container_name) | ✅ | |
 | [`environment`](https://docs.docker.com/compose/compose-file/05-services/#environment) | ✅ | |
 | [`volumes`](https://docs.docker.com/compose/compose-file/05-services/#volumes) | ✅ | |
