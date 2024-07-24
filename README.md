@@ -188,7 +188,7 @@ When specifying the image as a string, this image will be pulled automatically o
 | [`network_mode`](https://docs.docker.com/compose/compose-file/05-services/#network_mode) | ❌ | |
 | [`privileged`](https://docs.docker.com/compose/compose-file/05-services/#privileged) | ✅  | |
 | [`extra_hosts`](https://docs.docker.com/compose/compose-file/05-services/#extra_hosts) | ✅ | |
-| [`sysctls`](https://docs.docker.com/compose/compose-file/05-services/#sysctls) | ❌ | |
+| [`sysctls`](https://docs.docker.com/compose/compose-file/05-services/#sysctls) | ⚠️ | Only list syntax is supported. |
 | [`shm_size`](https://docs.docker.com/compose/compose-file/05-services/#shm_size) | ❌ | |
 | [`runtime`](https://docs.docker.com/compose/compose-file/05-services/#runtime) | ❌ | |
 | [`security_opt`](https://docs.docker.com/compose/compose-file/05-services/#security_opt) | ❌ | |

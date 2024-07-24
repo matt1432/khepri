@@ -89,6 +89,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      sysctls = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
       cpus = mkOption {
         type = types.nullOr types.numbers.nonnegative;
         default = null;
@@ -223,6 +227,7 @@ let
         ports
         privileged
         restart
+        sysctls
         tmpfs
         ;
 
@@ -287,9 +292,11 @@ let
           map (tmpfs: "--tmpfs ${tmpfs}") serviceConfiguration.tmpfs;
         exposeOptions =
           map (port: "--expose ${port}") serviceConfiguration.expose;
+        sysctlsOptions =
+          map (sysctl: "--sysctl ${sysctl}") serviceConfiguration.sysctls;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
-      ++ exposeOptions
+      ++ exposeOptions ++ sysctlsOptions
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
