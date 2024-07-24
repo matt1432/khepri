@@ -288,7 +288,7 @@ let
         else
           [ ];
         cpusOption = if serviceConfiguration.cpus != null then
-          [ "--cpus ${toString serviceConfiguration.cpus}" ]
+          [ "--cpus=${toString serviceConfiguration.cpus}" ]
         else
           [ ];
         deviceOptions =
@@ -300,13 +300,13 @@ let
         extraHostsOptions =
           map (host: "--add-host=${host}") serviceConfiguration.extraHosts;
         tmpfsOptions =
-          map (tmpfs: "--tmpfs ${tmpfs}") serviceConfiguration.tmpfs;
+          map (tmpfs: "--tmpfs=${tmpfs}") serviceConfiguration.tmpfs;
         exposeOptions =
-          map (port: "--expose ${port}") serviceConfiguration.expose;
+          map (port: "--expose=${port}") serviceConfiguration.expose;
         sysctlsOptions =
-          map (sysctl: "--sysctl ${sysctl}") serviceConfiguration.sysctls;
+          map (sysctl: "--sysctl=${sysctl}") serviceConfiguration.sysctls;
         dnsOptions =
-          map (dns: "--dns ${dns}") serviceConfiguration.dns;
+          map (dns: "--dns=${dns}") serviceConfiguration.dns;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
       ++ exposeOptions ++ sysctlsOptions ++ dnsOptions
