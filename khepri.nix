@@ -288,7 +288,7 @@ let
         else
           [ ];
         cpusOption = if serviceConfiguration.cpus != null then
-          [ "--cpus ${serviceConfiguration.cpus}" ]
+          [ "--cpus ${toString serviceConfiguration.cpus}" ]
         else
           [ ];
         deviceOptions =
