@@ -49,6 +49,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      tmpfs = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
       cmd = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -130,7 +134,7 @@ let
       mappedVolumes =
         map (volumeMapping: head (builtins.split ":" volumeMapping))
         serviceConfiguration.volumes;
-      # Cross reference those mapped volumes with the volumes definied in the compoistion, so that we only link docker volumes and not direct file mounts
+      # Cross reference those mapped volumes with the volumes definied in the composition, so that we only link docker volumes and not direct file mounts
       # TODO: Additionally, some sanity checks might be usefull here
       serviceVolumes =
         filter (volume: elem volume compositionConfiguration.volumes)
@@ -202,6 +206,7 @@ let
       extraHosts = serviceConfiguration.extraHosts;
       restart = serviceConfiguration.restart;
       privileged = serviceConfiguration.privileged;
+      tmpfs = serviceConfiguration.tmpfs;
 
       # Additional information for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -255,8 +260,10 @@ let
           map (cap: "--cap-drop=${cap}") serviceConfiguration.capDrop;
         extraHostsOptions =
           map (host: "--add-host=${host}") serviceConfiguration.extraHosts;
+        tmpfsOptions =
+          map (tmpfs: "--tmpfs ${tmpfs}") serviceConfiguration.tmpfs;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
-      ++ capDropOptions ++ privilegedOption
+      ++ capDropOptions ++ privilegedOption ++ tmpfs
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 

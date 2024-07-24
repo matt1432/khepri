@@ -170,6 +170,7 @@ When specifying the image as a string, this image will be pulled automatically o
 | [`environment`](https://docs.docker.com/compose/compose-file/05-services/#environment) | ✅ | |
 | [`env_file`](https://docs.docker.com/compose/compose-file/05-services/#env_file) | ⚠️ | Only short syntax is supported. |
 | [`volumes`](https://docs.docker.com/compose/compose-file/05-services/#volumes) | ✅ | |
+| [`tmpfs`](https://docs.docker.com/compose/compose-file/05-services/#tmpfs) | ✅ | |
 | [`labels`](https://docs.docker.com/compose/compose-file/05-services/#labels) | ❌ | |
 | [`ports`](https://docs.docker.com/compose/compose-file/05-services/#ports) | ✅ | |
 | [`dns`](https://docs.docker.com/compose/compose-file/05-services/#dns) | ❌ | |
