@@ -1,13 +1,47 @@
 {
   description = "Nix native docker container orchestration";
+
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
-    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs = {
+      type = "github";
+      owner = "NixOS";
+      repo = "nixpkgs";
+      ref = "nixos-unstable";
+    };
   };
-  outputs = { nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = import nixpkgs { inherit system; };
-      in { packages.nixos-tests = pkgs.testers.runNixOSTest ./test.nix; }) // {
-        nixosModules.default = ./khepri.nix;
+
+  outputs = {
+    self,
+    nixpkgs,
+    ...
+  }: let
+    supportedSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+
+    perSystem = attrs:
+      nixpkgs.lib.genAttrs supportedSystems (system:
+        attrs (import nixpkgs {inherit system;}));
+  in {
+    nixosModules = {
+      default = self.nixosModules.khepri;
+
+      khepri = import ./khepri.nix;
+    };
+
+    packages = perSystem (pkgs: {
+      nixos-tests = pkgs.testers.runNixOSTest ./test.nix;
+    });
+
+    formatter = perSystem (pkgs: pkgs.alejandra);
+
+    devShells = perSystem (pkgs: {
+      default = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          nix-unit
+        ];
       };
+    });
+  };
 }
