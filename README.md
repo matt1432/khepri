@@ -168,6 +168,7 @@ When specifying the image as a string, this image will be pulled automatically o
 | [`image`](https://docs.docker.com/compose/compose-file/05-services/#image) | ✅ | Supports images from `dockerTools.pullImage` |
 | [`container_name`](https://docs.docker.com/compose/compose-file/05-services/#container_name) | ✅ | |
 | [`environment`](https://docs.docker.com/compose/compose-file/05-services/#environment) | ✅ | |
+| [`env_file`](https://docs.docker.com/compose/compose-file/05-services/#env_file) | ⚠️ | Only short syntax is supported. |
 | [`volumes`](https://docs.docker.com/compose/compose-file/05-services/#volumes) | ✅ | |
 | [`labels`](https://docs.docker.com/compose/compose-file/05-services/#labels) | ❌ | |
 | [`ports`](https://docs.docker.com/compose/compose-file/05-services/#ports) | ✅ | |

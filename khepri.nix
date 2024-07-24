@@ -37,6 +37,10 @@ let
         type = types.attrsOf types.str;
         default = { };
       };
+      environmentFiles = mkOption {
+        type = types.listOf types.path;
+        default = [ ];
+      };
       containerName = mkOption {
         type = types.nullOr types.str;
         default = null;
@@ -185,6 +189,7 @@ let
         null;
       # Some extra parameters that are passed as is
       environment = serviceConfiguration.environment;
+      environmentFiles = serviceConfiguration.environmentFiles;
       cmd = serviceConfiguration.cmd;
       ports = serviceConfiguration.ports;
       devices = serviceConfiguration.devices;
@@ -223,6 +228,7 @@ let
       image = serviceConfiguration.image;
       imageFile = serviceConfiguration.imageFile;
       environment = serviceConfiguration.environment;
+      environmentFiles = serviceConfiguration.environmentFiles;
       volumes = serviceConfiguration.volumeMappings;
       cmd = serviceConfiguration.cmd;
       ports = serviceConfiguration.ports;
