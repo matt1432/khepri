@@ -53,6 +53,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      user = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+      };
       cmd = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -229,6 +233,7 @@ let
         restart
         sysctls
         tmpfs
+        user
         ;
 
       # Additional information for systemd
@@ -280,6 +285,10 @@ let
           [ "--cpus ${serviceConfiguration.cpus}" ]
         else
           [ ];
+        userOption = if serviceConfiguration.user != null then
+          [ "--user ${serviceConfiguration.user}" ]
+        else
+          [ ];
         deviceOptions =
           map (device: "--device=${device}") serviceConfiguration.devices;
         capAddOptions =
@@ -296,7 +305,7 @@ let
           map (sysctl: "--sysctl ${sysctl}") serviceConfiguration.sysctls;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
-      ++ exposeOptions ++ sysctlsOptions
+      ++ exposeOptions ++ sysctlsOptions ++ userOption
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
