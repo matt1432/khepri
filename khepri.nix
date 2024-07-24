@@ -69,6 +69,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      dns = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
       ports = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -223,6 +227,7 @@ let
         cmd
         cpus
         devices
+        dns
         entrypoint
         environment
         environmentFiles
@@ -269,6 +274,7 @@ let
       environmentFiles = serviceConfiguration.environmentFiles;
       volumes = serviceConfiguration.volumeMappings;
       cmd = serviceConfiguration.cmd;
+      user = serviceConfiguration.user;
       ports = serviceConfiguration.ports;
       dependsOn = serviceConfiguration.dependsOn;
       entrypoint = serviceConfiguration.entrypoint;
@@ -285,10 +291,6 @@ let
           [ "--cpus ${serviceConfiguration.cpus}" ]
         else
           [ ];
-        userOption = if serviceConfiguration.user != null then
-          [ "--user ${serviceConfiguration.user}" ]
-        else
-          [ ];
         deviceOptions =
           map (device: "--device=${device}") serviceConfiguration.devices;
         capAddOptions =
@@ -303,9 +305,11 @@ let
           map (port: "--expose ${port}") serviceConfiguration.expose;
         sysctlsOptions =
           map (sysctl: "--sysctl ${sysctl}") serviceConfiguration.sysctls;
+        dnsOptions =
+          map (dns: "--dns ${dns}") serviceConfiguration.dns;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
-      ++ exposeOptions ++ sysctlsOptions ++ userOption
+      ++ exposeOptions ++ sysctlsOptions ++ dnsOptions
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
