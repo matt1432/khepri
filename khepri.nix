@@ -44,7 +44,7 @@
     };
   };
 
-  serviceOptions = {...}: {
+  serviceOptions = {name, ...}: {
     options = {
       capAdd = mkOption {
         type = with types; listOf str;
@@ -61,8 +61,8 @@
       };
 
       containerName = mkOption {
-        type = with types; nullOr str;
-        default = null;
+        type = types.str;
+        default = name;
       };
 
       cpus = mkOption {
@@ -159,10 +159,8 @@
   # ------------------------------------------------
   # FUNCTIONS
   # ------------------------------------------------
-  mkContainerName = compositionName: serviceName: serviceConfiguration:
-    if serviceConfiguration.containerName != null
-    then serviceConfiguration.containerName
-    else "${compositionName}_${serviceName}";
+  mkContainerName = compositionName: serviceConfiguration:
+    "${compositionName}_${serviceConfiguration.containerName}";
 
   mkNetworkName = compositionName: networkName: networkConfiguration:
     if networkConfiguration.external
@@ -236,17 +234,14 @@
       networkConfigurations))
     serviceConfiguration.networks;
 
-    containerName = mkContainerName compositionName serviceName serviceConfiguration;
+    containerName = mkContainerName compositionName serviceConfiguration;
 
     imageName =
       if builtins.isString serviceConfiguration.image
       then serviceConfiguration.image
       else getImageNameFromDerivation serviceConfiguration.image;
   in {
-    hostName =
-      if serviceConfiguration.containerName != null
-      then serviceConfiguration.containerName
-      else serviceName;
+    hostName = serviceConfiguration.containerName;
 
     primaryNetwork =
       if attachedNetworksConfigurations == []
@@ -261,7 +256,7 @@
         (tail attachedNetworksConfigurations);
 
     dependsOn = map (dependencyServiceName:
-      mkContainerName compositionName dependencyServiceName
+      mkContainerName compositionName
       (getAttr dependencyServiceName compositionConfiguration.services))
     serviceConfiguration.dependsOn;
 
