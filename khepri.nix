@@ -57,6 +57,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      entrypoint = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+      };
       networks = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -204,19 +208,23 @@ let
       else
         null;
       # Some extra parameters that are passed as is
-      environment = serviceConfiguration.environment;
-      environmentFiles = serviceConfiguration.environmentFiles;
-      cmd = serviceConfiguration.cmd;
-      ports = serviceConfiguration.ports;
-      devices = serviceConfiguration.devices;
-      capAdd = serviceConfiguration.capAdd;
-      capDrop = serviceConfiguration.capDrop;
-      extraHosts = serviceConfiguration.extraHosts;
-      restart = serviceConfiguration.restart;
-      privileged = serviceConfiguration.privileged;
-      tmpfs = serviceConfiguration.tmpfs;
-      cpus = serviceConfiguration.cpus;
-      expose = serviceConfiguration.expose;
+      inherit
+        (serviceConfiguration)
+        capAdd
+        capDrop
+        cmd
+        cpus
+        devices
+        entrypoint
+        environment
+        environmentFiles
+        expose
+        extraHosts
+        ports
+        privileged
+        restart
+        tmpfs
+        ;
 
       # Additional information for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -266,6 +274,10 @@ let
           [ "--cpus ${serviceConfiguration.cpus}" ]
         else
           [ ];
+        entrypointOption = if serviceConfiguration.entrypoint != null then
+          [ "--entrypoint ${serviceConfiguration.entrypoint}" ]
+        else
+          [ ];
         deviceOptions =
           map (device: "--device=${device}") serviceConfiguration.devices;
         capAddOptions =
@@ -280,7 +292,7 @@ let
           map (port: "--expose ${port}") serviceConfiguration.expose;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
-      ++ exposeOptions
+      ++ exposeOptions ++ entrypointOption
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
