@@ -261,6 +261,7 @@ let
       cmd = serviceConfiguration.cmd;
       ports = serviceConfiguration.ports;
       dependsOn = serviceConfiguration.dependsOn;
+      entrypoint = serviceConfiguration.entrypoint;
       extraOptions = let
         networkOption = if serviceConfiguration.primaryNetwork != "" then
           [ "--network=${serviceConfiguration.primaryNetwork}" ]
@@ -272,10 +273,6 @@ let
           [ ];
         cpusOption = if serviceConfiguration.cpus != null then
           [ "--cpus ${serviceConfiguration.cpus}" ]
-        else
-          [ ];
-        entrypointOption = if serviceConfiguration.entrypoint != null then
-          [ "--entrypoint ${serviceConfiguration.entrypoint}" ]
         else
           [ ];
         deviceOptions =
@@ -292,7 +289,7 @@ let
           map (port: "--expose ${port}") serviceConfiguration.expose;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
-      ++ exposeOptions ++ entrypointOption
+      ++ exposeOptions
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
