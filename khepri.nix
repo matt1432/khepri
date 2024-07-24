@@ -81,6 +81,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      cpus = mkOption {
+        type = types.nullOr types.numbers.nonnegative;
+        default = null;
+      };
       extraHosts = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -207,6 +211,7 @@ let
       restart = serviceConfiguration.restart;
       privileged = serviceConfiguration.privileged;
       tmpfs = serviceConfiguration.tmpfs;
+      cpus = serviceConfiguration.cpus;
 
       # Additional information for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -247,9 +252,13 @@ let
         networkOption = if serviceConfiguration.primaryNetwork != "" then
           [ "--network=${serviceConfiguration.primaryNetwork}" ]
         else
-          [ "--privileged" ];
+          [ ];
         privilegedOption = if serviceConfiguration.privileged then
-          []
+          [ "--privileged" ]
+        else
+          [ ];
+        cpusOption = if serviceConfiguration.cpus != null then
+          [ "--cpus ${serviceConfiguration.cpus}" ]
         else
           [ ];
         deviceOptions =
@@ -263,7 +272,7 @@ let
         tmpfsOptions =
           map (tmpfs: "--tmpfs ${tmpfs}") serviceConfiguration.tmpfs;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
-      ++ capDropOptions ++ privilegedOption ++ tmpfs
+      ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
