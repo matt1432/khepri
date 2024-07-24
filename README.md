@@ -173,6 +173,7 @@ When specifying the image as a string, this image will be pulled automatically o
 | [`tmpfs`](https://docs.docker.com/compose/compose-file/05-services/#tmpfs) | ✅ | |
 | [`labels`](https://docs.docker.com/compose/compose-file/05-services/#labels) | ❌ | |
 | [`ports`](https://docs.docker.com/compose/compose-file/05-services/#ports) | ✅ | |
+| [`expose`](https://docs.docker.com/compose/compose-file/05-services/#expose) | ✅ | |
 | [`dns`](https://docs.docker.com/compose/compose-file/05-services/#dns) | ❌ | |
 | [`cap_add/cap_drop`](https://docs.docker.com/compose/compose-file/05-services/#cap_add) | ✅ | |
 | [`logging`](https://docs.docker.com/compose/compose-file/05-services/#logging) | ❌ | |

@@ -65,6 +65,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      expose = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
       dependsOn = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -212,6 +216,7 @@ let
       privileged = serviceConfiguration.privileged;
       tmpfs = serviceConfiguration.tmpfs;
       cpus = serviceConfiguration.cpus;
+      expose = serviceConfiguration.expose;
 
       # Additional information for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -271,8 +276,11 @@ let
           map (host: "--add-host=${host}") serviceConfiguration.extraHosts;
         tmpfsOptions =
           map (tmpfs: "--tmpfs ${tmpfs}") serviceConfiguration.tmpfs;
+        exposeOptions =
+          map (port: "--expose ${port}") serviceConfiguration.expose;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
       ++ capDropOptions ++ privilegedOption ++ tmpfsOptions ++ cpusOption
+      ++ exposeOptions
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
