@@ -184,7 +184,7 @@ When specifying the image as a string, this image will be pulled automatically o
 | [`networks.aliases`](https://docs.docker.com/compose/compose-file/05-services/#aliases) | ❌ | |
 | [`networks.ipv*_address`](https://docs.docker.com/compose/compose-file/05-services/#ipv4_address-ipv6_address) | ❌ | |
 | [`network_mode`](https://docs.docker.com/compose/compose-file/05-services/#network_mode) | ❌ | |
-| [`privileged`](https://docs.docker.com/compose/compose-file/05-services/#privileged) | ❌ | |
+| [`privileged`](https://docs.docker.com/compose/compose-file/05-services/#privileged) | ✅  | |
 | [`extra_hosts`](https://docs.docker.com/compose/compose-file/05-services/#extra_hosts) | ✅ | |
 | [`sysctls`](https://docs.docker.com/compose/compose-file/05-services/#sysctls) | ❌ | |
 | [`shm_size`](https://docs.docker.com/compose/compose-file/05-services/#shm_size) | ❌ | |

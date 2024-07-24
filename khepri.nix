@@ -81,6 +81,10 @@ let
         type = types.listOf types.str;
         default = [ ];
       };
+      privileged = mkOption {
+        type = types.bool;
+        default = false;
+      };
     };
   };
   # Helper functions to enable consistent name generation
@@ -197,6 +201,7 @@ let
       capDrop = serviceConfiguration.capDrop;
       extraHosts = serviceConfiguration.extraHosts;
       restart = serviceConfiguration.restart;
+      privileged = serviceConfiguration.privileged;
 
       # Additional information for systemd
       systemdTarget = mkSystemdTargetName compositionName;
@@ -237,6 +242,10 @@ let
         networkOption = if serviceConfiguration.primaryNetwork != "" then
           [ "--network=${serviceConfiguration.primaryNetwork}" ]
         else
+          [ "--privileged" ];
+        privilegedOption = if serviceConfiguration.privileged then
+          []
+        else
           [ ];
         deviceOptions =
           map (device: "--device=${device}") serviceConfiguration.devices;
@@ -247,7 +256,7 @@ let
         extraHostsOptions =
           map (host: "--add-host=${host}") serviceConfiguration.extraHosts;
       in networkOption ++ deviceOptions ++ capAddOptions ++ extraHostsOptions
-      ++ capDropOptions
+      ++ capDropOptions ++ privilegedOption
       ++ [ "--network-alias=${serviceConfiguration.hostName}" ];
     };
 
