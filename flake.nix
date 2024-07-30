@@ -27,7 +27,7 @@
     nixosModules = {
       default = self.nixosModules.khepri;
 
-      khepri = import ./khepri.nix;
+      khepri = import ./modules;
     };
 
     packages = perSystem (pkgs: {
