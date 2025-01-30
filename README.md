@@ -1,3 +1,6 @@
+> [!WARNING]  
+> This repo is unmaintained in favor of https://github.com/matt1432/nixos-docker-compose
+
 # khepri
 
 NixOS docker container orchestration in native nix similar to docker-compose. 
